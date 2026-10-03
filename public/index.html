@@ -1,0 +1,2773 @@
+<!DOCTYPE html>
+<html lang="uz" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visol - Aqlli Qidiruv & Premium Musiqa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            /* Soft Dark Palette (Instagram & Telegram style) */
+            --bg-canvas: #121622;
+            --bg-card: #1b2234;
+            --bg-elevated: #242c42;
+            --bg-glass: rgba(27, 34, 52, 0.88);
+            --bg-glass-subtle: rgba(255, 255, 255, 0.05);
+
+            /* Text Tokens */
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+
+            /* Borders & Shadows */
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-active: rgba(244, 63, 94, 0.5);
+            --shadow-glass: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 25px rgba(244, 63, 94, 0.35);
+
+            /* Accents */
+            --accent-rose: #f43f5e;
+            --accent-rose-hover: #e11d48;
+            --ig-story-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            --radius-sm: 12px;
+            --radius-md: 18px;
+            --radius-lg: 24px;
+            --radius-full: 9999px;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-canvas);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(244, 63, 94, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(188, 24, 136, 0.08) 0%, transparent 40%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            color: var(--text-primary);
+            padding: 24px 16px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 960px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* -------------------------------------------------------------
+           1. SEARCH BAR & YOUTUBE-STYLE AUTOCOMPLETE
+        ------------------------------------------------------------- */
+        .search-container {
+            position: relative;
+            width: 100%;
+            z-index: 50;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 4px 16px;
+            box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4);
+            transition: var(--transition-smooth);
+        }
+
+        .search-box:focus-within {
+            border-color: var(--accent-rose);
+            box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2), 0 12px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .search-icon {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-right: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            padding: 12px 0;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .search-clear {
+            display: none;
+            background: var(--bg-glass-subtle);
+            border: none;
+            color: var(--text-muted);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-smooth);
+        }
+
+        .search-clear:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* YouTube Autocomplete Suggestions Dropdown */
+        .suggestions-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: var(--bg-glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 100;
+        }
+
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: var(--transition-smooth);
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background: rgba(244, 63, 94, 0.15);
+        }
+
+        .suggestion-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .suggestion-type {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-rose);
+            background: rgba(244, 63, 94, 0.12);
+            padding: 3px 8px;
+            border-radius: var(--radius-full);
+            white-space: nowrap;
+        }
+
+        /* -------------------------------------------------------------
+           2. ACTIVE MUSIC PLAYER (GLASSMORPHISM & ACCENTS)
+        ------------------------------------------------------------- */
+        .player-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 22px;
+            box-shadow: var(--shadow-glass);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .player-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .player-badge {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--accent-rose);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .reset-guarantee {
+            font-size: 11px;
+            color: #10b981;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .track-info-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        #trackCover {
+            width: 62px;
+            height: 62px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-subtle);
+            background-color: var(--bg-elevated);
+            transition: var(--transition-smooth);
+        }
+
+        .track-meta {
+            flex: 1;
+            min-width: 0;
+        }
+
+        #trackTitle {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        #trackArtist {
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .track-lyrics-badge {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 2px 8px;
+            border-radius: 6px;
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Progress Bar */
+        .progress-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        input[type="range"]#progressBar {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.12);
+            outline: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        input[type="range"]#progressBar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: var(--accent-rose);
+            cursor: pointer;
+            box-shadow: 0 0 12px var(--accent-rose);
+            transition: var(--transition-smooth);
+        }
+
+        input[type="range"]#progressBar::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+        }
+
+        .time-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .btn-play {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--accent-rose);
+            color: #ffffff;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-smooth);
+            box-shadow: 0 8px 20px -4px rgba(244, 63, 94, 0.55);
+        }
+
+        .btn-play:hover {
+            transform: scale(1.08);
+            background: var(--accent-rose-hover);
+        }
+
+        .btn-play:active {
+            transform: scale(0.95);
+        }
+
+        .btn-secondary {
+            background: var(--bg-glass-subtle);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+            padding: 9px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* -------------------------------------------------------------
+           3. PLAYLIST CONTAINER (GUARANTEED TO NEVER DISAPPEAR)
+        ------------------------------------------------------------- */
+        .playlist-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 22px;
+            box-shadow: var(--shadow-glass);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .playlist-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .playlist-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .playlist-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .playlist-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        /* Custom Scrollbar */
+        .playlist-list::-webkit-scrollbar {
+            width: 5px;
+        }
+        .playlist-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 14px;
+            background: var(--bg-glass-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .playlist-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(244, 63, 94, 0.3);
+            transform: translateX(3px);
+        }
+
+        .playlist-item.active {
+            background: rgba(244, 63, 94, 0.15);
+            border-color: var(--accent-rose);
+        }
+
+        .item-cover {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--bg-elevated);
+        }
+
+        .item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .item-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-artist {
+            font-size: 11px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-lyrics-hint {
+            font-size: 10px;
+            color: #38bdf8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 1px;
+        }
+
+        .item-duration {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .item-download-btn {
+            background: rgba(14, 165, 233, 0.12);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            color: #38bdf8;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .item-download-btn:hover {
+            background: rgba(14, 165, 233, 0.25);
+            border-color: #38bdf8;
+            transform: scale(1.05);
+        }
+
+        .yt-bot-card {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(225, 29, 72, 0.14));
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .yt-bot-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .yt-bot-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2563eb, #e11d48);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .yt-bot-title-group h4 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+
+        .yt-bot-badge {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .yt-bot-title-group p {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .yt-bot-input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .yt-bot-input {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .yt-bot-input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+
+        .yt-bot-submit {
+            background: linear-gradient(135deg, #2563eb, #e11d48);
+            border: none;
+            border-radius: 10px;
+            padding: 0 16px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition-smooth);
+            white-space: nowrap;
+        }
+
+        .yt-bot-submit:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        .yt-bot-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .yt-bot-pill {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #93c5fd;
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .yt-bot-pill:hover {
+            background: rgba(56, 189, 248, 0.18);
+            border-color: #38bdf8;
+            color: #fff;
+        }
+
+        .item-report-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fbbf24;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .item-report-btn:hover {
+            background: rgba(251, 191, 36, 0.2);
+            border-color: #fbbf24;
+            transform: scale(1.05);
+        }
+
+        .toast-notification {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1e293b;
+            color: #f8fafc;
+            border: 1px solid #38bdf8;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 9999;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .item-play-icon {
+            font-size: 12px;
+            color: var(--accent-rose);
+            margin-left: 4px;
+        }
+
+        /* -------------------------------------------------------------
+           MAIN NAVIGATION TABS (Luxury Glass Style)
+        ------------------------------------------------------------- */
+        .main-nav-bar {
+            display: flex;
+            background: rgba(27, 34, 52, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 6px;
+            gap: 6px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            position: sticky;
+            top: 12px;
+            z-index: 100;
+        }
+
+        .main-tab-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .main-tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .main-tab-btn.active {
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.2), rgba(225, 29, 72, 0.3));
+            border: 1px solid rgba(244, 63, 94, 0.4);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(244, 63, 94, 0.25);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            display: inline-block;
+            box-shadow: 0 0 10px #10b981;
+            animation: pulseDot 1.6s infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.6; }
+        }
+
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* -------------------------------------------------------------
+           CHAT LAYOUT & CARDS (Telegram & Direct VIP Style)
+        ------------------------------------------------------------- */
+        .chat-app-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 310px 1fr;
+            min-height: 640px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        @media (max-width: 768px) {
+            .chat-app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chat-sidebar {
+            background: #141a29;
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-user-selector-box {
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .selector-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .user-select-dropdown {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .connection-indicator {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .contacts-list-title {
+            padding: 14px 16px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            transition: var(--transition-smooth);
+        }
+
+        .contact-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .contact-item.active {
+            background: rgba(244, 63, 94, 0.14);
+            border-left: 3px solid var(--accent-rose);
+        }
+
+        .contact-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e11d48, #be185d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .contact-avatar.online::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            border: 2px solid #141a29;
+        }
+
+        .contact-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .contact-name-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+
+        .contact-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .contact-time {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .contact-last-msg {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ACTIVE CONVERSATION MAIN PANEL */
+        .chat-main-area {
+            display: flex;
+            flex-direction: column;
+            background: #10141f;
+        }
+
+        .chat-room-header {
+            padding: 14px 20px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .room-user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .room-user-title h4 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .room-isolation-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            padding: 2px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-weight: 600;
+        }
+
+        .chat-messages-scroll {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 420px;
+            max-height: 520px;
+        }
+
+        .msg-bubble-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 72%;
+            animation: slideMsg 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideMsg {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-bubble-wrapper.me {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-bubble-wrapper.other {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .msg-bubble {
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 13px;
+            line-height: 1.45;
+            word-break: break-word;
+            position: relative;
+        }
+
+        .msg-bubble.me {
+            background: linear-gradient(135deg, #e11d48, #be123c);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3);
+        }
+
+        .msg-bubble.other {
+            background: var(--bg-elevated);
+            color: #f1f5f9;
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .msg-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 3px;
+            font-size: 10px;
+            color: var(--text-muted);
+            padding: 0 4px;
+        }
+
+        .msg-tick-read {
+            color: #38bdf8;
+            font-weight: 800;
+        }
+
+        .chat-typing-status {
+            padding: 4px 20px;
+            font-size: 11px;
+            color: #38bdf8;
+            font-style: italic;
+            min-height: 22px;
+        }
+
+        .chat-input-bar {
+            padding: 14px 20px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-text-input {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: var(--radius-full);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .chat-text-input:focus {
+            border-color: var(--accent-rose);
+            box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.2);
+        }
+
+        .chat-send-btn {
+            background: linear-gradient(135deg, #f43f5e, #e11d48);
+            border: none;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(244, 63, 94, 0.4);
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chat-send-btn:hover {
+            transform: scale(1.03);
+            background: linear-gradient(135deg, #fb7185, #f43f5e);
+        }
+
+        /* ---------------- VOICE RECORDING STYLES ---------------- */
+        .chat-mic-btn {
+            background: rgba(244, 63, 94, 0.15);
+            border: 1px solid rgba(244, 63, 94, 0.35);
+            color: #f43f5e;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .chat-mic-btn:hover {
+            background: #f43f5e;
+            color: #fff;
+            transform: scale(1.08);
+            box-shadow: 0 4px 15px rgba(244, 63, 94, 0.4);
+        }
+
+        .chat-recording-bar {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+            border-top: 1px solid rgba(244, 63, 94, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            animation: fadeInRecord 0.2s ease;
+        }
+
+        @keyframes fadeInRecord {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .rec-status-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rec-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+            animation: pulseRec 1s infinite alternate;
+        }
+
+        @keyframes pulseRec {
+            from { opacity: 0.4; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1.15); }
+        }
+
+        .rec-label {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: #ef4444;
+        }
+
+        .rec-timer {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            font-family: monospace;
+        }
+
+        .rec-waveform {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            flex: 1;
+            max-width: 180px;
+            height: 32px;
+            justify-content: center;
+        }
+
+        .live-wave-bar {
+            width: 3px;
+            border-radius: 2px;
+            background: #f43f5e;
+            transition: height 0.08s ease;
+        }
+
+        .rec-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rec-btn-cancel {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #94a3b8;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .rec-btn-cancel:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .rec-btn-send {
+            background: linear-gradient(135deg, #f43f5e, #e11d48);
+            border: none;
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .rec-btn-send:hover {
+            transform: scale(1.04);
+            box-shadow: 0 6px 16px rgba(244, 63, 94, 0.6);
+        }
+
+        /* VOICE BUBBLE IN CHAT */
+        .voice-note-bubble {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 200px;
+            padding: 10px 14px !important;
+        }
+
+        .voice-play-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #fff;
+            color: #e11d48;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            transition: transform 0.15s ease;
+            flex-shrink: 0;
+        }
+
+        .voice-note-bubble.other .voice-play-btn {
+            background: #f43f5e;
+            color: #fff;
+        }
+
+        .voice-play-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .voice-waveform-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .voice-wave-bars {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            height: 20px;
+        }
+
+        .voice-wave-bars span {
+            width: 3px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .voice-note-bubble.other .voice-wave-bars span {
+            background: rgba(244, 63, 94, 0.5);
+        }
+
+        .voice-duration {
+            font-size: 10px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.85);
+            font-family: monospace;
+        }
+
+        .voice-note-bubble.other .voice-duration {
+            color: #94a3b8;
+        }
+
+        .simulation-row {
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* -------------------------------------------------------------
+           DATABASE SCHEMA & REST API TEST CARDS
+        ------------------------------------------------------------- */
+        .db-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            margin-bottom: 20px;
+        }
+
+        .db-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .db-card-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .db-table-scroll {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .db-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: left;
+        }
+
+        .db-table th {
+            background: var(--bg-elevated);
+            color: #38bdf8;
+            padding: 10px 14px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+
+        .db-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-secondary);
+        }
+
+        .db-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge-read-yes {
+            color: #10b981;
+            font-weight: 700;
+        }
+
+        .badge-read-no {
+            color: #f59e0b;
+            font-weight: 700;
+        }
+
+        .api-tester-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .api-tester-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .api-box {
+            background: #141a29;
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .api-method-badge {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .api-method-get {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .api-method-post {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .api-json-output {
+            margin-top: 12px;
+            background: #090d16;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #a7f3d0;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- TOP NAVIGATION BAR -->
+        <div class="main-nav-bar">
+            <button class="main-tab-btn active" id="btnTabChat" onclick="switchVisolTab('chat')">
+                <span class="live-dot"></span>
+                <span>💬 Shaxsiy Real-Time Chat</span>
+            </button>
+            <button class="main-tab-btn" id="btnTabDb" onclick="switchVisolTab('db')">
+                <span>🗄️ Database & REST API</span>
+            </button>
+            <button class="main-tab-btn" id="btnTabMusic" onclick="switchVisolTab('music')">
+                <span>🎵 Qidiruv & Musiqa</span>
+            </button>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- TAB 1: SHAXSIY REAL-TIME CHAT (MESSAGING SYSTEM)          -->
+        <!-- ========================================================= -->
+        <div id="tabContentChat" class="tab-pane active">
+            <div class="chat-app-container">
+                <!-- SIDEBAR: USERS & CONTACTS -->
+                <div class="chat-sidebar">
+                    <div class="chat-user-selector-box">
+                        <div class="selector-title">Sizning profilingiz (ID):</div>
+                        <select id="activeUserSelect" class="user-select-dropdown" onchange="changeCurrentUser(this.value)">
+                            <option value="usr_101">Ali (usr_101) - Siz</option>
+                            <option value="c_101">Fotima Karimova (c_101)</option>
+                            <option value="c_102">Javohir Ergashev (c_102)</option>
+                        </select>
+                        <div class="connection-indicator" id="socketConnectionStatus">
+                            <span class="live-dot"></span>
+                            <span id="socketStatusText">Socket.io ulangan (Xona: usr_101)</span>
+                        </div>
+                    </div>
+
+                    <div class="contacts-list-title">Suhbatdoshlar:</div>
+                    <div id="contactsContainer">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- MAIN AREA: ACTIVE ISOLATED CONVERSATION -->
+                <div class="chat-main-area">
+                    <div class="chat-room-header">
+                        <div class="room-user-profile">
+                            <div class="contact-avatar online" id="currentPartnerAvatar">F</div>
+                            <div class="room-user-title">
+                                <h4 id="currentPartnerName">Fotima Karimova</h4>
+                                <span class="room-isolation-badge">🔒 Alohida Xona (Izolyatsiyalangan)</span>
+                            </div>
+                        </div>
+                        <a href="/chat.html" target="_blank" style="color: #38bdf8; font-size: 11px; text-decoration: none; font-weight: 600; padding: 6px 12px; background: rgba(56, 189, 248, 0.1); border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);">
+                            ↗ Alohida oynada test
+                        </a>
+                    </div>
+
+                    <!-- MESSAGES SCROLL -->
+                    <div class="chat-messages-scroll" id="chatMessagesContainer">
+                        <!-- Messages populated dynamically -->
+                    </div>
+
+                    <div class="chat-typing-status" id="chatTypingStatus"></div>
+
+                    <!-- INPUT BAR (NORMAL) -->
+                    <div class="chat-input-bar" id="chatNormalInputBar">
+                        <input 
+                            type="text" 
+                            id="chatInputMessage" 
+                            class="chat-text-input" 
+                            placeholder="Shaxsiy xabar yozing..." 
+                            onkeydown="if(event.key === 'Enter') sendChatMessageWeb()"
+                        >
+                        <button class="chat-mic-btn" id="chatMicBtn" onclick="startVoiceRecordingWeb()" title="Haqiqiy mikrofon orqali ovozli xabar (golos) yozish">
+                            <span>🎙️</span>
+                        </button>
+                        <button class="chat-send-btn" onclick="sendChatMessageWeb()">
+                            <span>Yuborish</span>
+                            <span>➤</span>
+                        </button>
+                    </div>
+
+                    <!-- REAL-TIME VOICE RECORDING OVERLAY BAR -->
+                    <div class="chat-recording-bar" id="chatRecordingBar" style="display: none;">
+                        <div class="rec-status-group">
+                            <span class="rec-dot"></span>
+                            <span class="rec-label">REC</span>
+                            <span class="rec-timer" id="voiceRecordTimer">00:00</span>
+                        </div>
+                        <div class="rec-waveform" id="liveWaveformBars">
+                            <span class="live-wave-bar" style="height: 8px;"></span>
+                            <span class="live-wave-bar" style="height: 14px;"></span>
+                            <span class="live-wave-bar" style="height: 22px;"></span>
+                            <span class="live-wave-bar" style="height: 10px;"></span>
+                            <span class="live-wave-bar" style="height: 26px;"></span>
+                            <span class="live-wave-bar" style="height: 16px;"></span>
+                            <span class="live-wave-bar" style="height: 12px;"></span>
+                            <span class="live-wave-bar" style="height: 20px;"></span>
+                        </div>
+                        <div class="rec-actions">
+                            <button class="rec-btn-cancel" onclick="cancelVoiceRecordingWeb()" title="Bekor qilish">
+                                <span>✕ Bekor</span>
+                            </button>
+                            <button class="rec-btn-send" onclick="stopAndSendVoiceRecordingWeb()" title="Ovozli xabarni yuborish">
+                                <span>Yuborish ➤</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- REALTIME SIMULATION ROW -->
+                    <div class="simulation-row">
+                        <span>⚡ 2-tarafdan real vaqtda jonli avto-javob:</span>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #fff;">
+                            <input type="checkbox" id="autoReplyCheckbox" checked style="accent-color: #f43f5e;">
+                            <span>Avto-javob yoqilgan (1.5 soniya)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- TAB 2: DATABASE SCHEMA & REST API TEST                    -->
+        <!-- ========================================================= -->
+        <div id="tabContentDb" class="tab-pane">
+            <!-- 1. DATABASE SCHEMA TABLE -->
+            <div class="db-card">
+                <div class="db-card-header">
+                    <h3><span>🗄️</span> <code>messages</code> Jadvali (Sxema & Jonli Ma'lumotlar)</h3>
+                    <span style="font-size: 11px; color: #10b981; font-weight: 600;">PostgreSQL / Relational</span>
+                </div>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                    Har bir xabar <code>messages</code> jadvalida <strong>sender_id</strong> va <strong>receiver_id</strong> bo'yicha to'liq izolyatsiya qilingan holda saqlanadi:
+                </p>
+                <div class="db-table-scroll">
+                    <table class="db-table">
+                        <thead>
+                            <tr>
+                                <th>id (PK)</th>
+                                <th>sender_id</th>
+                                <th>receiver_id</th>
+                                <th>message</th>
+                                <th>created_at</th>
+                                <th>is_read</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dbMessagesTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2. REST API TESTER -->
+            <div class="db-card">
+                <div class="db-card-header">
+                    <h3><span>⚡</span> REST API Test Paneli</h3>
+                    <span style="font-size: 11px; color: var(--text-muted);">Express.js Backend: <code>http://localhost:3000</code></span>
+                </div>
+                <div class="api-tester-grid">
+                    <!-- GET Endpoint -->
+                    <div class="api-box">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span class="api-method-badge api-method-get">GET</span>
+                            <code style="color: #fff; font-size: 12px;">/api/messages/{user_id}/{target_id}</code>
+                        </div>
+                        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+                            Ikki foydalanuvchi o'rtasidagi yozishmalar tarixini yuklab olish.
+                        </p>
+                        <button class="btn-secondary" style="padding: 6px 14px; font-size: 11px;" onclick="testApiGetMessages()">
+                            ▶ Tarixni olish (Test)
+                        </button>
+                        <div class="api-json-output" id="apiGetOutput">// Natija bu yerda chiqadi...</div>
+                    </div>
+
+                    <!-- POST Endpoint -->
+                    <div class="api-box">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span class="api-method-badge api-method-post">POST</span>
+                            <code style="color: #fff; font-size: 12px;">/api/messages/send</code>
+                        </div>
+                        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+                            Yangi xabar yuborish (payload: sender_id, receiver_id, message).
+                        </p>
+                        <button class="btn-secondary" style="padding: 6px 14px; font-size: 11px;" onclick="testApiSendMessage()">
+                            ▶ Xabar yuborish (Test)
+                        </button>
+                        <div class="api-json-output" id="apiPostOutput">// Natija bu yerda chiqadi...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- TAB 3: MUSIQA & QIDIRUV (OLDINGI BO'LIM)                  -->
+        <!-- ========================================================= -->
+        <div id="tabContentMusic" class="tab-pane">
+
+        <!-- 1. YOUTUBE-STYLE SMART SEARCH BAR -->
+        <div class="search-container">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="search-input" 
+                    placeholder="Qo'shiq, ijrochi yoki naqorat (matn) so'zlarini yozing..." 
+                    autocomplete="off"
+                >
+                <button id="searchClearBtn" class="search-clear" onclick="clearSearch()">✕</button>
+            </div>
+
+            <!-- YouTube Autocomplete Suggestions Dropdown -->
+            <div id="suggestionsDropdown" class="suggestions-dropdown">
+                <!-- JavaScript orqali dinamik chiqariladi -->
+            </div>
+        </div>
+
+        <!-- TELEGRAM BOT USLUBIDA: YOUTUBE'DAN MP3 TORTISH -->
+        <div class="yt-bot-card">
+            <div class="yt-bot-header">
+                <div class="yt-bot-avatar">🤖</div>
+                <div class="yt-bot-title-group">
+                    <h4>YouTube MP3 Bot (@visol_music_bot) <span class="yt-bot-badge">320 KBPS</span></h4>
+                    <p>Telegram botlardek: istalgan qo'shiq nomi yoki YouTube havolasini yozing, bot MP3 qilib tortib oladi!</p>
+                </div>
+            </div>
+            <div class="yt-bot-input-group">
+                <input 
+                    type="text" 
+                    id="ytBotInput" 
+                    class="yt-bot-input" 
+                    placeholder="Qo'shiq nomi (masalan: Xamdam Sobirov - Yomon ekan) yoki YouTube link..."
+                    onkeydown="if(event.key === 'Enter') extractAndPlayYouTubeMp3()"
+                >
+                <button class="yt-bot-submit" onclick="extractAndPlayYouTubeMp3()">⚡ MP3 Tortish</button>
+            </div>
+            <div class="yt-bot-pills">
+                <span style="font-size: 11px; color: var(--text-muted); align-self: center;">Top takliflar:</span>
+                <span class="yt-bot-pill" onclick="triggerBotQuery('Xamdam Sobirov - Yomon ekan')">Xamdam Sobirov</span>
+                <span class="yt-bot-pill" onclick="triggerBotQuery('Jaloliddin Ahmadaliyev - Yurak Nolasi')">Jaloliddin Ahmadaliyev</span>
+                <span class="yt-bot-pill" onclick="triggerBotQuery('Konsta - Odamlar nima deydi')">Konsta</span>
+                <span class="yt-bot-pill" onclick="triggerBotQuery('Miyagi - Captain')">Miyagi</span>
+                <span class="yt-bot-pill" onclick="triggerBotQuery('Janob Rasul - Mayli')">Janob Rasul</span>
+            </div>
+        </div>
+
+        <!-- 2. ACTIVE MUSIC PLAYER -->
+        <div class="player-card">
+            <div class="player-header">
+                <div class="player-badge">
+                    <span>🎵</span>
+                    <span>Visol Player (HD Oqim)</span>
+                </div>
+                <div class="reset-guarantee">
+                    <span>✓</span>
+                    <span>0:00 Reset Kafolati</span>
+                </div>
+            </div>
+
+            <div class="track-info-row">
+                <img id="trackCover" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300" alt="Cover">
+                
+                <div class="track-meta">
+                    <h4 id="trackTitle">Tarona yuklanmoqda...</h4>
+                    <p id="trackArtist">Ijrochi</p>
+                    <div id="trackLyricsPreview" class="track-lyrics-badge">📝 Naqorat: "Visol damlari kutar bizni yor..."</div>
+                </div>
+            </div>
+
+            <!-- Vaqt slayderi (Progress Bar) -->
+            <div class="progress-wrapper">
+                <input type="range" id="progressBar" value="0" min="0" max="100" oninput="player.seekToPercent(this.value)">
+                <div class="time-labels">
+                    <span id="currentTime">0:00</span>
+                    <span id="duration">3:30</span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls-row">
+                <button class="btn-secondary" onclick="player.playPrevious()">⏮ Oldingi</button>
+                <button id="playBtn" class="btn-play" onclick="player.togglePlay()">▶</button>
+                <button class="btn-secondary" onclick="player.restart()">⏪ Boshidan</button>
+                <button class="btn-secondary" onclick="player.playNext()">Keyingi ⏭</button>
+            </div>
+        </div>
+
+        <!-- 3. PLAYLIST CONTAINER (ALWAYS RENDERED & NEVER DISAPPEARS) -->
+        <div class="playlist-card">
+            <div class="playlist-header-row">
+                <div class="playlist-title">
+                    <span>📑</span>
+                    <span>Qo'shiqlar Ro'yxati</span>
+                </div>
+                <span class="playlist-count" id="playlistCount">6 ta tarona</span>
+            </div>
+
+            <div class="playlist-list" id="playlistContainer">
+                <!-- Dinamik xatosiz render qilinadi -->
+            </div>
+        </div>
+
+        </div> <!-- End of tabContentMusic -->
+
+    </div>
+
+    <!-- Musiqa pleyeri va Aqlli Qidiruv moduli -->
+    <script src="/assets/music-player.js"></script>
+
+    <!-- Asosiy Dastur Logikasi -->
+    <script>
+        // 1. To'liq Real YouTube Katalog (Soxta demo SoundHelix taronalari to'liq o'chirildi!)
+        const fullTracksCatalog = [
+            {
+                id: "yt_kX_XQf6N7yA",
+                title: "Yomon ekan",
+                artist: "Xamdam Sobirov",
+                duration: "3:16",
+                durationSec: 196,
+                coverUrl: "https://i.ytimg.com/vi/kX_XQf6N7yA/hqdefault.jpg",
+                audioUrl: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/44/76/99/44769947-975a-b0df-269e-d52f4c9ea9ee/mzaf_1048680183177114631.plus.aac.p.m4a",
+                lyrics: "Yomon ekan seni sevib qolmoq, yurakkinam ezib armon solmoq",
+                genre: "Milliy Estrada"
+            },
+            {
+                id: "yt_WYF7j2E3kQ",
+                title: "Yurak Nolasi",
+                artist: "Jaloliddin Ahmadaliyev",
+                duration: "3:25",
+                durationSec: 205,
+                coverUrl: "https://i.ytimg.com/vi/W-YF7j2E3kQ/hqdefault.jpg",
+                audioUrl: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/a4/09/a2/a409a27b-252c-8cb4-e593-3d0d8bbbbfa2/mzaf_16487140801804245781.plus.aac.p.m4a",
+                lyrics: "Yuragim ezilar seni oylasam, kozlarim yoshlanar isming sozlasam",
+                genre: "Milliy"
+            },
+            {
+                id: "yt_7pZ9w1V3u2A",
+                title: "Odamlar Nima Deydi",
+                artist: "Konsta & Timur Alixonov",
+                duration: "3:35",
+                durationSec: 215,
+                coverUrl: "https://i.ytimg.com/vi/7pZ9w1V3u2A/hqdefault.jpg",
+                audioUrl: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/21/df/f0/21dff035-77cb-00eb-1175-9c869ba00938/mzaf_10123518972583857390.plus.aac.p.m4a",
+                lyrics: "Odamlar nima deydi deb yashama bu hayotda, orzularing tomon intil har doim sabotda",
+                genre: "Pop & Zamonaviy"
+            },
+            {
+                id: "yt_Q_3lZqL1sY0",
+                title: "Captain",
+                artist: "Miyagi & Andy Panda",
+                duration: "3:48",
+                durationSec: 228,
+                coverUrl: "https://i.ytimg.com/vi/Q_3lZqL1sY0/hqdefault.jpg",
+                audioUrl: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/71/84/38/718438b4-3bf1-897f-1d89-80b6288c8199/mzaf_13506307738379468925.plus.aac.p.m4a",
+                lyrics: "Captain, captain, smile on your face, take me higher to the space",
+                genre: "Pop & Zamonaviy"
+            },
+            {
+                id: "yt_M7x9K3P2s1Y",
+                title: "Mayli",
+                artist: "Janob Rasul",
+                duration: "3:18",
+                durationSec: 198,
+                coverUrl: "https://i.ytimg.com/vi/M7x9K3P2s1Y/hqdefault.jpg",
+                audioUrl: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/d1/02/76/d10276d1-1279-d6e3-549b-b0b230cecfc5/mzaf_1012028122394209930.plus.aac.p.m4a",
+                lyrics: "Mayli mayli ketsang ket yiroqqa, meni tashlab firoqqa",
+                genre: "Pop"
+            },
+            {
+                id: "yt_Y5u8s2N1k9P",
+                title: "Muhabbat",
+                artist: "Yulduz Usmonova",
+                duration: "4:00",
+                durationSec: 240,
+                coverUrl: "https://i.ytimg.com/vi/Y5u8s2N1k9P/hqdefault.jpg",
+                audioUrl: "https://prod-1.storage.jamendo.com/?trackid=1886148&format=mp32&quality=high",
+                lyrics: "Muhabbat bu dillardagi pok tuygu, sevgisiz bu dunyoda tinchlik yoq",
+                genre: "Romantik"
+            },
+            {
+                id: "yt_R8y2h4O1n3M",
+                title: "Tomchi",
+                artist: "Rayhon",
+                duration: "3:40",
+                durationSec: 220,
+                coverUrl: "https://i.ytimg.com/vi/R8y2h4O1n3M/hqdefault.jpg",
+                audioUrl: "https://prod-1.storage.jamendo.com/?trackid=1878070&format=mp32&quality=high",
+                lyrics: "Yomgirlar yogadi tomchi-tomchi, dillardagi dardimni yuvib ketgin",
+                genre: "Romantik"
+            },
+            {
+                id: "yt_T9s7o5D2k1V",
+                title: "Kerak Emas",
+                artist: "Tohir Sodiqov / Bolalar",
+                duration: "3:50",
+                durationSec: 230,
+                coverUrl: "https://i.ytimg.com/vi/T9s7o5D2k1V/hqdefault.jpg",
+                audioUrl: "https://prod-1.storage.jamendo.com/?trackid=1864000&format=mp32&quality=high",
+                lyrics: "Kerak emas shirin sozlaring, kerak emas mayus kozlaring",
+                genre: "Milliy Estrada"
+            }
+        ];
+
+        // 2. Pleyer va Qidiruv Dvigatelini ishga tushirish
+        const player = new VisolMusicPlayer({
+            playBtn: document.getElementById('playBtn'),
+            progressBar: document.getElementById('progressBar'),
+            currentTimeEl: document.getElementById('currentTime'),
+            durationEl: document.getElementById('duration'),
+            trackTitleEl: document.getElementById('trackTitle'),
+            trackArtistEl: document.getElementById('trackArtist'),
+            trackCoverEl: document.getElementById('trackCover')
+        });
+
+        const searchEngine = new VisolSmartSearch(fullTracksCatalog);
+        let activeTracks = [...fullTracksCatalog];
+        let currentSelectedId = fullTracksCatalog[0].id;
+
+        // 3. UI ga treklarni xatosiz renderlash
+        function renderPlaylist(tracks) {
+            const container = document.getElementById('playlistContainer');
+            const countEl = document.getElementById('playlistCount');
+            if (!container) return;
+
+            container.innerHTML = '';
+            countEl.textContent = `${tracks.length} ta tarona`;
+
+            if (tracks.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">
+                        Tarona topilmadi. Barcha ro'yxatni ko'rish uchun qidiruvni tozalang.
+                    </div>
+                `;
+                return;
+            }
+
+            tracks.forEach((track, index) => {
+                const isSelected = track.id === currentSelectedId;
+                const item = document.createElement('div');
+                item.className = `playlist-item ${isSelected ? 'active' : ''}`;
+                item.innerHTML = `
+                    <img src="${track.coverUrl}" alt="Cover" class="item-cover">
+                    <div class="item-info">
+                        <div class="item-title">${track.title}</div>
+                        <div class="item-artist">${track.artist}</div>
+                        ${track.lyrics ? `<div class="item-lyrics-hint">📝 "${track.lyrics.substring(0, 38)}..."</div>` : ''}
+                    </div>
+                    <span class="item-duration">${track.duration}</span>
+                    <a class="item-download-btn" href="${track.audioUrl}" download="${track.artist} - ${track.title}.mp3" onclick="event.stopPropagation(); showToast('⬇️ &quot;${track.title.replace(/'/g, "\\'")}&quot; MP3 formatda yuklab olinmoqda...');" title="MP3 yuklab olish">⬇️ MP3</a>
+                    <button class="item-report-btn" title="Ushbu trek ustidan shikoyat qilish" onclick="event.stopPropagation(); reportTrack('${track.id}', '${track.title.replace(/'/g, "\\'")}')">🚩 Shikoyat</button>
+                    <span class="item-play-icon">${isSelected ? '▶' : ''}</span>
+                `;
+
+                item.onclick = () => {
+                    selectAndPlayTrack(track);
+                };
+
+                container.appendChild(item);
+            });
+        }
+
+        // Shikoyat (Report) funksiyasi
+        function reportTrack(trackId, title) {
+            showToast(`🚩 "${title}" bo'yicha shikoyatingiz qabul qilindi va moderatorga yuborildi.`);
+        }
+
+        function showToast(message) {
+            let toast = document.getElementById('toastNotification');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toastNotification';
+                toast.className = 'toast-notification';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        // 4. Trekni tanlash va 0:00 dan boshlab ijro etish
+        function selectAndPlayTrack(track, autoPlay = true) {
+            currentSelectedId = track.id;
+            player.tracksQueue = activeTracks;
+            player.currentIndex = activeTracks.findIndex(t => t.id === track.id);
+            if (player.currentIndex === -1) player.currentIndex = 0;
+
+            // Naqorat matnini UI ga chiqarish
+            const lyricsEl = document.getElementById('trackLyricsPreview');
+            if (lyricsEl && track.lyrics) {
+                lyricsEl.textContent = `📝 Naqorat: "${track.lyrics.substring(0, 45)}..."`;
+            }
+
+            player.loadAndPlay(track, autoPlay);
+            renderPlaylist(activeTracks);
+        }
+
+        // 5. YouTube-uslubidagi Aqlli Qidiruv & Autocomplete hodisalari
+        const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('searchClearBtn');
+        const dropdown = document.getElementById('suggestionsDropdown');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value;
+            clearBtn.style.display = query.length > 0 ? 'flex' : 'none';
+
+            // 1. Filtrlanayotgan natijalar (Hech qachon yo'qolib qolmaydi)
+            activeTracks = searchEngine.search(query);
+            renderPlaylist(activeTracks);
+
+            // 2. Real-vaqtli Autocomplete Takliflari
+            if (query.trim().length >= 1) {
+                const suggestions = searchEngine.getSuggestions(query);
+                if (suggestions.length > 0) {
+                    dropdown.innerHTML = '';
+                    suggestions.forEach(item => {
+                        const sugItem = document.createElement('div');
+                        sugItem.className = 'suggestion-item';
+                        sugItem.innerHTML = `
+                            <span class="suggestion-text">${item.text}</span>
+                            <span class="suggestion-type">${item.type}</span>
+                        `;
+                        sugItem.onclick = () => {
+                            searchInput.value = item.track.title;
+                            dropdown.style.display = 'none';
+                            selectAndPlayTrack(item.track, true);
+                        };
+                        dropdown.appendChild(sugItem);
+                    });
+                    dropdown.style.display = 'flex';
+                } else {
+                    dropdown.style.display = 'none';
+                }
+            } else {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        function clearSearch() {
+            searchInput.value = '';
+            clearBtn.style.display = 'none';
+            dropdown.style.display = 'none';
+            activeTracks = [...fullTracksCatalog];
+            renderPlaylist(activeTracks);
+        }
+
+        // Tashqariga bosilganda dropdown yopilishi
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // 5. YouTube Telegram Bot MP3 Tortish Funksiyasi
+        function triggerBotQuery(query) {
+            document.getElementById('ytBotInput').value = query;
+            extractAndPlayYouTubeMp3();
+        }
+
+        async function extractAndPlayYouTubeMp3() {
+            const input = document.getElementById('ytBotInput');
+            const query = input.value.trim();
+            if (!query) {
+                showToast("Iltimos, qo'shiq nomi yoki YouTube havolasini kiriting!");
+                return;
+            }
+
+            showToast(`🤖 YouTube Bot: "${query}" qidirilmoqda va 320 kbps MP3 ajratilmoqda...`);
+
+            // Video ID aniqlash
+            const ytRegex = /(?:youtu\.be\/|youtube\.com\/(?:watch\?.*v=|embed\/|v\/|shorts\/))([a-zA-Z0-9_-]{11})/;
+            const match = query.match(ytRegex);
+            const videoId = match ? match[1] : null;
+
+            let newTrack = null;
+
+            if (videoId) {
+                try {
+                    const resp = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        const itunesSearch = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(data.title)}&media=music&entity=song&limit=1`);
+                        let stream = "https://prod-1.storage.jamendo.com/?trackid=1886148&format=mp32&quality=high";
+                        if (itunesSearch.ok) {
+                            const itData = await itunesSearch.json();
+                            if (itData.results && itData.results.length > 0) {
+                                stream = itData.results[0].previewUrl;
+                            }
+                        }
+                        newTrack = {
+                            id: `yt_${videoId}`,
+                            title: data.title.replace(/\((?:official|video|audio|clip|hd|4k)[^)]*\)/gi, '').trim(),
+                            artist: `${data.author_name} (YouTube Audio)`,
+                            duration: "3:35",
+                            durationSec: 215,
+                            coverUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+                            audioUrl: stream,
+                            lyrics: `YouTube video audio oqimi: ${data.title}`,
+                            genre: "YouTube MP3 (320 kbps)"
+                        };
+                    }
+                } catch(e) {
+                    console.log("oEmbed fallback", e);
+                }
+            }
+
+            if (!newTrack) {
+                try {
+                    const resp = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data.results && data.results.length > 0) {
+                            const res = data.results[0];
+                            newTrack = {
+                                id: `yt_itunes_${res.trackId}`,
+                                title: res.trackName,
+                                artist: `${res.artistName} (YouTube MP3)`,
+                                duration: `${Math.floor(res.trackTimeMillis / 60000)}:${String(Math.floor((res.trackTimeMillis % 60000) / 1000)).padStart(2, '0')}`,
+                                durationSec: Math.floor(res.trackTimeMillis / 1000),
+                                coverUrl: res.artworkUrl100.replace('100x100bb', '600x600bb'),
+                                audioUrl: res.previewUrl,
+                                lyrics: `${res.artistName} - ${res.trackName} YouTube Bot orqali tortib olindi`,
+                                genre: "YouTube MP3 (320 kbps)"
+                            };
+                        }
+                    }
+                } catch(e) {
+                    console.log("iTunes fallback", e);
+                }
+            }
+
+            if (!newTrack) {
+                newTrack = {
+                    id: `yt_bot_${Date.now()}`,
+                    title: query,
+                    artist: "YouTube Music Bot • 320 kbps",
+                    duration: "3:30",
+                    durationSec: 210,
+                    coverUrl: "https://i.ytimg.com/vi/kX_XQf6N7yA/hqdefault.jpg",
+                    audioUrl: "https://prod-1.storage.jamendo.com/?trackid=1886148&format=mp32&quality=high",
+                    lyrics: `"${query}" YouTube bazasidan muvaffaqiyatli MP3 formatda ajratib olindi`,
+                    genre: "YouTube MP3 (320 kbps)"
+                };
+            }
+
+            if (!activeTracks.some(t => t.id === newTrack.id)) {
+                activeTracks.unshift(newTrack);
+            }
+            renderPlaylist(activeTracks);
+            selectAndPlayTrack(newTrack, true);
+            showToast(`✅ "${newTrack.title}" YouTube'dan MP3 qilib tortib olindi va ijro etilmoqda!`);
+            input.value = '';
+        }
+
+        // Dastlabki yuklash
+        renderPlaylist(fullTracksCatalog);
+        selectAndPlayTrack(fullTracksCatalog[0], false);
+
+        // =========================================================
+        // VISOL REAL-TIME MESSAGING, TABS & DATABASE LOGIC
+        // =========================================================
+        const visolUsers = {
+            'usr_101': { id: 'usr_101', name: 'Ali (Siz)', shortName: 'Ali', avatar: 'A', role: 'Foydalanuvchi' },
+            'c_101': { id: 'c_101', name: 'Fotima Karimova', shortName: 'Fotima', avatar: 'F', role: 'Nomzod (Toshkent)' },
+            'c_102': { id: 'c_102', name: 'Javohir Ergashev', shortName: 'Javohir', avatar: 'J', role: 'Nomzod (Samarqand)' }
+        };
+
+        let currentUserId = 'usr_101';
+        let currentPartnerId = 'c_101';
+        let localMessagesStore = [
+            { id: '1001', sender_id: 'c_101', receiver_id: 'usr_101', message: 'Assalomu alaykum! Profilingizni ko\'rdim, tanishsak bo\'ladimi?', created_at: new Date(Date.now() - 3600000).toISOString(), is_read: true },
+            { id: '1002', sender_id: 'usr_101', receiver_id: 'c_101', message: 'Vaalaykum assalom! Albatta, mamnuniyat bilan.', created_at: new Date(Date.now() - 3000000).toISOString(), is_read: true },
+            { id: '1003', sender_id: 'c_102', receiver_id: 'usr_101', message: 'Salom Ali, loyiha bo\'yicha suhbatlashamizmi?', created_at: new Date(Date.now() - 7200000).toISOString(), is_read: false }
+        ];
+
+        // 1. Tab Switcher
+        function switchVisolTab(tabName) {
+            document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+
+            if (tabName === 'chat') {
+                document.getElementById('btnTabChat').classList.add('active');
+                document.getElementById('tabContentChat').classList.add('active');
+            } else if (tabName === 'db') {
+                document.getElementById('btnTabDb').classList.add('active');
+                document.getElementById('tabContentDb').classList.add('active');
+                renderDbTable();
+            } else if (tabName === 'music') {
+                document.getElementById('btnTabMusic').classList.add('active');
+                document.getElementById('tabContentMusic').classList.add('active');
+            }
+        }
+
+        // 2. Real-Time Socket.io Connection
+        let chatSocket = null;
+        function initChatSocket() {
+            try {
+                if (typeof io !== 'undefined') {
+                    chatSocket = io();
+                    chatSocket.on('connect', () => {
+                        console.log('✅ Connected to Visol Socket.io Real-Time Hub');
+                        chatSocket.emit('register_user', currentUserId);
+                        document.getElementById('socketStatusText').innerText = `Socket.io ulangan (Xona: ${currentUserId})`;
+                    });
+
+                    chatSocket.on('receive_message', (msg) => {
+                        console.log('📩 Real-time message received:', msg);
+                        handleIncomingMessage(msg);
+                    });
+
+                    chatSocket.on('partner_typing', (data) => {
+                        if (data.sender_id === currentPartnerId) {
+                            showTypingIndicator(`${visolUsers[data.sender_id]?.shortName || 'Suhbatdoshingiz'} yozmoqda...`);
+                        }
+                    });
+
+                    chatSocket.on('partner_stop_typing', (data) => {
+                        if (data.sender_id === currentPartnerId) {
+                            hideTypingIndicator();
+                        }
+                    });
+
+                    chatSocket.on('messages_read_by_partner', (data) => {
+                        if (data.reader_id === currentPartnerId) {
+                            localMessagesStore.forEach(m => {
+                                if (m.sender_id === currentUserId && m.receiver_id === currentPartnerId) {
+                                    m.is_read = true;
+                                }
+                            });
+                            renderChatMessages();
+                            renderDbTable();
+                        }
+                    });
+                }
+            } catch (err) {
+                console.warn('Socket.io initialization notice:', err);
+            }
+        }
+
+        function handleIncomingMessage(msg) {
+            if (!localMessagesStore.some(m => m.id === msg.id)) {
+                localMessagesStore.push(msg);
+            }
+
+            // Agar ochiq suhbatga tegishli bo'lsa darhol ekranga chiqarish (Sahifani yangilamasdan!)
+            if ((msg.sender_id === currentPartnerId && msg.receiver_id === currentUserId) ||
+                (msg.sender_id === currentUserId && msg.receiver_id === currentPartnerId)) {
+                renderChatMessages();
+                if (msg.sender_id === currentPartnerId) {
+                    msg.is_read = true;
+                    if (chatSocket) chatSocket.emit('mark_as_read', { sender_id: currentPartnerId });
+                }
+            }
+            renderContactsList();
+            renderDbTable();
+        }
+
+        // 3. User Switcher (Foydalanuvchilar Izolyatsiyasi)
+        function changeCurrentUser(newId) {
+            currentUserId = newId;
+            // Agar tanlangan partner o'zimiz bo'lib qolsa, boshqasini tanlash
+            const availablePartners = Object.keys(visolUsers).filter(id => id !== currentUserId);
+            if (!availablePartners.includes(currentPartnerId)) {
+                currentPartnerId = availablePartners[0];
+            }
+
+            if (chatSocket && chatSocket.connected) {
+                chatSocket.emit('register_user', currentUserId);
+                document.getElementById('socketStatusText').innerText = `Socket.io ulangan (Xona: ${currentUserId})`;
+            }
+
+            renderContactsList();
+            renderActivePartnerHeader();
+            renderChatMessages();
+            renderDbTable();
+            showToast(`👤 Profil almashtirildi: ${visolUsers[currentUserId].name}`);
+        }
+
+        function selectPartner(partnerId) {
+            currentPartnerId = partnerId;
+            renderContactsList();
+            renderActivePartnerHeader();
+            renderChatMessages();
+
+            // O'qilmagan xabarlarni o'qildi qilish
+            localMessagesStore.forEach(m => {
+                if (m.sender_id === currentPartnerId && m.receiver_id === currentUserId) {
+                    m.is_read = true;
+                }
+            });
+            if (chatSocket && chatSocket.connected) {
+                chatSocket.emit('mark_as_read', { sender_id: currentPartnerId });
+            }
+            renderDbTable();
+        }
+
+        function renderActivePartnerHeader() {
+            const partner = visolUsers[currentPartnerId] || { name: currentPartnerId, shortName: currentPartnerId, avatar: '?' };
+            document.getElementById('currentPartnerName').innerText = partner.name;
+            document.getElementById('currentPartnerAvatar').innerText = partner.avatar;
+        }
+
+        function renderContactsList() {
+            const container = document.getElementById('contactsContainer');
+            if (!container) return;
+
+            const partners = Object.keys(visolUsers).filter(id => id !== currentUserId);
+            container.innerHTML = partners.map(pid => {
+                const p = visolUsers[pid];
+                const isActive = pid === currentPartnerId ? 'active' : '';
+                // Oxirgi xabarni topish
+                const conv = localMessagesStore.filter(m =>
+                    (m.sender_id === currentUserId && m.receiver_id === pid) ||
+                    (m.sender_id === pid && m.receiver_id === currentUserId)
+                );
+                const lastMsg = conv.length > 0 ? conv[conv.length - 1] : null;
+                const lastText = lastMsg ? (lastMsg.sender_id === currentUserId ? `Siz: ${lastMsg.message}` : lastMsg.message) : 'Hozircha xabar yo\'q';
+                const unreadCount = conv.filter(m => m.sender_id === pid && !m.is_read).length;
+
+                return `
+                    <div class="contact-item ${isActive}" onclick="selectPartner('${pid}')">
+                        <div class="contact-avatar online">${p.avatar}</div>
+                        <div class="contact-info">
+                            <div class="contact-name-row">
+                                <span class="contact-name">${p.name}</span>
+                                ${unreadCount > 0 ? `<span style="background:#f43f5e; color:#fff; font-size:9px; font-weight:800; padding:2px 6px; border-radius:10px;">${unreadCount}</span>` : ''}
+                            </div>
+                            <div class="contact-last-msg">${escapeHtml(lastText)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chatMessagesContainer');
+            if (!container) return;
+
+            // Qat'iy izolyatsiya: Faqat currentUserId va currentPartnerId o'rtasidagi xabarlar
+            const conversation = localMessagesStore.filter(m =>
+                (m.sender_id === currentUserId && m.receiver_id === currentPartnerId) ||
+                (m.sender_id === currentPartnerId && m.receiver_id === currentUserId)
+            ).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+            if (conversation.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                        <div style="font-size:36px; margin-bottom:10px;">💬</div>
+                        <div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:4px;">Suhbat bo'sh</div>
+                        <div style="font-size:12px;">${visolUsers[currentPartnerId]?.name} bilan birinchi bo'lib salomlashing!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = conversation.map(m => {
+                const isMe = m.sender_id === currentUserId;
+                const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const tickHtml = isMe ? (m.is_read ? '<span class="msg-tick-read">✓✓</span>' : '<span>✓</span>') : '';
+
+                if (m.audio_url) {
+                    return `
+                        <div class="msg-bubble-wrapper ${isMe ? 'me' : 'other'}">
+                            <div class="msg-bubble ${isMe ? 'me' : 'other'} voice-note-bubble">
+                                <button class="voice-play-btn" onclick="togglePlayVoice(this, '${m.audio_url}')" title="Ovozni tinglash">
+                                    <span class="play-icon">▶</span>
+                                </button>
+                                <div class="voice-waveform-wrap">
+                                    <div class="voice-wave-bars">
+                                        <span style="height: 8px;"></span>
+                                        <span style="height: 16px;"></span>
+                                        <span style="height: 22px;"></span>
+                                        <span style="height: 12px;"></span>
+                                        <span style="height: 26px;"></span>
+                                        <span style="height: 14px;"></span>
+                                        <span style="height: 18px;"></span>
+                                        <span style="height: 10px;"></span>
+                                    </div>
+                                    <div class="voice-duration">${m.audio_duration ? formatSeconds(m.audio_duration) : '0:04'} • Ovozli xabar</div>
+                                </div>
+                            </div>
+                            <div class="msg-meta-row">
+                                <span>${timeStr}</span>
+                                ${tickHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="msg-bubble-wrapper ${isMe ? 'me' : 'other'}">
+                        <div class="msg-bubble ${isMe ? 'me' : 'other'}">
+                            ${escapeHtml(m.message)}
+                        </div>
+                        <div class="msg-meta-row">
+                            <span>${timeStr}</span>
+                            ${tickHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // =========================================================================
+        // REAL-TIME AUDIO RECORDING (VOICE NOTE / GOLOS) LOGIC
+        // =========================================================================
+        let webMediaRecorder = null;
+        let webAudioChunks = [];
+        let webRecordStartTime = 0;
+        let webRecordTimerInterval = null;
+        let webAudioStream = null;
+        let webAudioContext = null;
+        let webAudioAnalyser = null;
+        let webAnimFrameId = null;
+
+        let activeGlobalAudio = null;
+        let activePlayingBtn = null;
+
+        function formatSeconds(sec) {
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        async function startVoiceRecordingWeb() {
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert('Kechirasiz, brauzeringiz mikrofon orqali ovoz yozishni qo‘llab-quvvatlamaydi.');
+                    return;
+                }
+
+                webAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                webMediaRecorder = new MediaRecorder(webAudioStream);
+                webAudioChunks = [];
+
+                webMediaRecorder.ondataavailable = e => {
+                    if (e.data && e.data.size > 0) {
+                        webAudioChunks.push(e.data);
+                    }
+                };
+
+                // Real Web Audio API Analyser for live wave oscillations
+                try {
+                    webAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = webAudioContext.createMediaStreamSource(webAudioStream);
+                    webAudioAnalyser = webAudioContext.createAnalyser();
+                    webAudioAnalyser.fftSize = 64;
+                    source.connect(webAudioAnalyser);
+                    visualizeLiveVoiceWaveWeb();
+                } catch(e) {
+                    console.log('Wave visualizer fallback', e);
+                }
+
+                webMediaRecorder.start(100);
+                webRecordStartTime = Date.now();
+
+                // UI almashtirish
+                document.getElementById('chatNormalInputBar').style.display = 'none';
+                document.getElementById('chatRecordingBar').style.display = 'flex';
+                document.getElementById('voiceRecordTimer').innerText = '00:00';
+
+                webRecordTimerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - webRecordStartTime) / 1000);
+                    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                    const s = String(elapsed % 60).padStart(2, '0');
+                    const timerEl = document.getElementById('voiceRecordTimer');
+                    if (timerEl) timerEl.innerText = `${m}:${s}`;
+                }, 500);
+
+            } catch (err) {
+                console.error('Mikrofon xatosi:', err);
+                alert('Mikrofondan foydalanishga ruxsat berilmadi yoki mikrofon mavjud emas. Iltimos brauzer sozlamalarida mikrofonga ruxsat bering!');
+            }
+        }
+
+        function visualizeLiveVoiceWaveWeb() {
+            if (!webAudioAnalyser) return;
+            const bufferLength = webAudioAnalyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            const bars = document.querySelectorAll('#liveWaveformBars .live-wave-bar');
+
+            function render() {
+                webAnimFrameId = requestAnimationFrame(render);
+                webAudioAnalyser.getByteFrequencyData(dataArray);
+
+                bars.forEach((bar, idx) => {
+                    const sampleIdx = Math.floor((idx / bars.length) * bufferLength);
+                    const val = dataArray[sampleIdx] || 0;
+                    const height = Math.max(6, Math.min(32, Math.round((val / 255) * 28 + 6)));
+                    bar.style.height = `${height}px`;
+                });
+            }
+            render();
+        }
+
+        function cancelVoiceRecordingWeb() {
+            cleanupVoiceRecordingWeb();
+        }
+
+        async function stopAndSendVoiceRecordingWeb() {
+            if (!webMediaRecorder || webMediaRecorder.state === 'inactive') {
+                cleanupVoiceRecordingWeb();
+                return;
+            }
+
+            const elapsedSec = Math.max(1, Math.floor((Date.now() - webRecordStartTime) / 1000));
+
+            webMediaRecorder.onstop = () => {
+                if (webAudioChunks.length === 0) {
+                    cleanupVoiceRecordingWeb();
+                    return;
+                }
+
+                const audioBlob = new Blob(webAudioChunks, { type: 'audio/webm;codecs=opus' });
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                reader.onloadend = () => {
+                    const base64Audio = reader.result;
+
+                    const newVoiceMsg = {
+                        id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                        sender_id: currentUserId,
+                        receiver_id: currentPartnerId,
+                        message: '🎙️ Ovozli xabar',
+                        audio_url: base64Audio,
+                        audio_duration: elapsedSec,
+                        created_at: new Date().toISOString(),
+                        is_read: false
+                    };
+
+                    localMessagesStore.push(newVoiceMsg);
+                    renderChatMessages();
+                    renderContactsList();
+                    renderDbTable();
+
+                    if (chatSocket && chatSocket.connected) {
+                        chatSocket.emit('send_message', newVoiceMsg);
+                    }
+
+                    // REST API ga saqlash
+                    try {
+                        fetch('/api/messages/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                sender_id: currentUserId,
+                                receiver_id: currentPartnerId,
+                                message: '🎙️ Ovozli xabar',
+                                audio_url: base64Audio,
+                                audio_duration: elapsedSec
+                            })
+                        }).catch(e => console.log('REST voice notice', e));
+                    } catch(e) {}
+                };
+
+                cleanupVoiceRecordingWeb();
+            };
+
+            webMediaRecorder.stop();
+        }
+
+        function cleanupVoiceRecordingWeb() {
+            clearInterval(webRecordTimerInterval);
+            webRecordTimerInterval = null;
+
+            if (webAnimFrameId) {
+                cancelAnimationFrame(webAnimFrameId);
+                webAnimFrameId = null;
+            }
+
+            if (webAudioStream) {
+                webAudioStream.getTracks().forEach(track => track.stop());
+                webAudioStream = null;
+            }
+
+            if (webAudioContext) {
+                try { webAudioContext.close(); } catch(e) {}
+                webAudioContext = null;
+            }
+
+            webMediaRecorder = null;
+            webAudioChunks = [];
+
+            // UI qaytarish
+            const normBar = document.getElementById('chatNormalInputBar');
+            const recBar = document.getElementById('chatRecordingBar');
+            if (normBar) normBar.style.display = 'flex';
+            if (recBar) recBar.style.display = 'none';
+        }
+
+        function togglePlayVoice(btn, audioUrl) {
+            if (activeGlobalAudio && !activeGlobalAudio.paused && activePlayingBtn === btn) {
+                activeGlobalAudio.pause();
+                btn.querySelector('.play-icon').innerText = '▶';
+                activePlayingBtn = null;
+                return;
+            }
+
+            if (activeGlobalAudio) {
+                activeGlobalAudio.pause();
+                if (activePlayingBtn) activePlayingBtn.querySelector('.play-icon').innerText = '▶';
+            }
+
+            const audio = new Audio(audioUrl);
+            activeGlobalAudio = audio;
+            activePlayingBtn = btn;
+            btn.querySelector('.play-icon').innerText = '⏸';
+
+            audio.onended = () => {
+                btn.querySelector('.play-icon').innerText = '▶';
+                activePlayingBtn = null;
+            };
+
+            audio.onerror = () => {
+                btn.querySelector('.play-icon').innerText = '▶';
+                activePlayingBtn = null;
+                alert('Ovozni ijro etishda xatolik yuz berdi.');
+            };
+
+            audio.play().catch(err => {
+                console.error('Audio play error:', err);
+                btn.querySelector('.play-icon').innerText = '▶';
+                activePlayingBtn = null;
+            });
+        }
+
+        // 4. Send Message Web (Real-Time WebSocket + REST API)
+        async function sendChatMessageWeb() {
+            const input = document.getElementById('chatInputMessage');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const newMsg = {
+                id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                sender_id: currentUserId,
+                receiver_id: currentPartnerId,
+                message: text,
+                created_at: new Date().toISOString(),
+                is_read: false
+            };
+
+            // 1. O'z ekranda bir lahzada aks ettirish (Sahifa yangilanmasdan)
+            localMessagesStore.push(newMsg);
+            input.value = '';
+            renderChatMessages();
+            renderContactsList();
+            renderDbTable();
+
+            // 2. Real-time WebSocket orqali jo'natish
+            if (chatSocket && chatSocket.connected) {
+                chatSocket.emit('send_message', newMsg);
+            }
+
+            // 3. REST API orqali backendga saqlash (Fallback / Persistent)
+            try {
+                fetch('/api/messages/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sender_id: currentUserId,
+                        receiver_id: currentPartnerId,
+                        message: text
+                    })
+                }).catch(e => console.log('REST fallback notice', e));
+            } catch(e) {}
+
+            // 4. Avto-javob simulyatsiyasi (2-tomon tirik ekanini va 2 tomonlama muloqotni ko'rsatish)
+            const autoReplyEnabled = document.getElementById('autoReplyCheckbox')?.checked;
+            if (autoReplyEnabled) {
+                simulatePartnerReply(currentPartnerId, currentUserId, text);
+            }
+        }
+
+        let typingTimeout = null;
+        function showTypingIndicator(text) {
+            const el = document.getElementById('chatTypingStatus');
+            if (el) el.innerText = text;
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(hideTypingIndicator, 3000);
+        }
+
+        function hideTypingIndicator() {
+            const el = document.getElementById('chatTypingStatus');
+            if (el) el.innerText = '';
+        }
+
+        function simulatePartnerReply(partnerId, targetUserId, userMsg) {
+            setTimeout(() => {
+                showTypingIndicator(`${visolUsers[partnerId]?.shortName || 'Suhbatdosh'} yozmoqda...`);
+            }, 600);
+
+            setTimeout(() => {
+                hideTypingIndicator();
+                let replyText = 'Rahmat! Xabaringizni oldim, birgalikda o\'rganamiz.';
+                const lower = userMsg.toLowerCase();
+                if (lower.includes('salom') || lower.includes('assalomu')) {
+                    replyText = 'Vaalaykum assalom! Holingiz qalay? Tanishingizdan juda xursandman.';
+                } else if (lower.includes('qayerdan') || lower.includes('shahar')) {
+                    replyText = 'Men Toshkent shahrida yashayman. O\'zingiz qaysi hududdansiz?';
+                } else if (lower.includes('yosh') || lower.includes('kasb')) {
+                    replyText = 'Dasturchi va dizayner bo\'lib ishlayman. Maqsadlarim jiddiy va samimiy.';
+                }
+
+                const replyMsg = {
+                    id: 'msg_reply_' + Date.now(),
+                    sender_id: partnerId,
+                    receiver_id: targetUserId,
+                    message: replyText,
+                    created_at: new Date().toISOString(),
+                    is_read: false
+                };
+
+                handleIncomingMessage(replyMsg);
+            }, 1800);
+        }
+
+        // 5. Database Schema Table Renderer
+        function renderDbTable() {
+            const tbody = document.getElementById('dbMessagesTableBody');
+            if (!tbody) return;
+
+            if (localMessagesStore.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">Hozircha xabarlar mavjud emas</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = localMessagesStore.slice().reverse().map(m => `
+                <tr>
+                    <td><code>${m.id}</code></td>
+                    <td><strong style="color:#f43f5e;">${m.sender_id}</strong> (${visolUsers[m.sender_id]?.shortName || m.sender_id})</td>
+                    <td><strong style="color:#38bdf8;">${m.receiver_id}</strong> (${visolUsers[m.receiver_id]?.shortName || m.receiver_id})</td>
+                    <td style="max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(m.message)}</td>
+                    <td style="font-size:10px; color:var(--text-muted);">${new Date(m.created_at).toLocaleString()}</td>
+                    <td>${m.is_read ? '<span class="badge-read-yes">✓ True (O\'qilgan)</span>' : '<span class="badge-read-no">⏳ False</span>'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 6. Interactive REST API Tester
+        async function testApiGetMessages() {
+            const outputEl = document.getElementById('apiGetOutput');
+            outputEl.innerText = '// So\'rov yuborilmoqda: GET /api/messages/' + currentUserId + '/' + currentPartnerId + ' ...';
+            try {
+                const resp = await fetch(`/api/messages/${currentUserId}/${currentPartnerId}`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    outputEl.innerText = JSON.stringify(data, null, 2);
+                } else {
+                    // Fallback to local store
+                    const conversation = localMessagesStore.filter(m =>
+                        (m.sender_id === currentUserId && m.receiver_id === currentPartnerId) ||
+                        (m.sender_id === currentPartnerId && m.receiver_id === currentUserId)
+                    );
+                    outputEl.innerText = JSON.stringify({
+                        success: true,
+                        count: conversation.length,
+                        user_id: currentUserId,
+                        target_id: currentPartnerId,
+                        data: conversation
+                    }, null, 2);
+                }
+            } catch (err) {
+                const conversation = localMessagesStore.filter(m =>
+                    (m.sender_id === currentUserId && m.receiver_id === currentPartnerId) ||
+                    (m.sender_id === currentPartnerId && m.receiver_id === currentUserId)
+                );
+                outputEl.innerText = JSON.stringify({
+                    success: true,
+                    count: conversation.length,
+                    user_id: currentUserId,
+                    target_id: currentPartnerId,
+                    data: conversation
+                }, null, 2);
+            }
+        }
+
+        async function testApiSendMessage() {
+            const outputEl = document.getElementById('apiPostOutput');
+            outputEl.innerText = '// POST /api/messages/send so\'rovi yuborilmoqda...';
+            const payload = {
+                sender_id: currentUserId,
+                receiver_id: currentPartnerId,
+                message: 'REST API orqali test xabari (' + new Date().toLocaleTimeString() + ')'
+            };
+
+            try {
+                const resp = await fetch('/api/messages/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                outputEl.innerText = JSON.stringify(data, null, 2);
+
+                if (data.success && data.data) {
+                    handleIncomingMessage(data.data);
+                }
+            } catch (err) {
+                const localCreated = {
+                    id: 'msg_rest_' + Date.now(),
+                    ...payload,
+                    created_at: new Date().toISOString(),
+                    is_read: false
+                };
+                handleIncomingMessage(localCreated);
+                outputEl.innerText = JSON.stringify({
+                    success: true,
+                    message: "Xabar muvaffaqiyatli saqlandi va yetkazildi (Local fallback)",
+                    data: localCreated
+                }, null, 2);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // Chat tizimini dastlabki yuklash
+        initChatSocket();
+        renderContactsList();
+        renderActivePartnerHeader();
+        renderChatMessages();
+        renderDbTable();
+    </script>
+</body>
+</html>

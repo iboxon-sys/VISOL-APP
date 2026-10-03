@@ -1,0 +1,6 @@
+{
+  "name": "Visol.uz",
+  "description": "O'zbekona sevgi va oila qurish ilovasi. Visol.uz - Jonli Face ID, viloyat-tuman-mahalla filtrlari, Reels va postlar, kuzatuvchilar va premium obuna tizimi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
