@@ -1385,6 +1385,8 @@ class UserRepository(private val context: Context) {
         searchQuery: String? = null
     ): List<UserProfile> {
         val cleanQuery = searchQuery?.trim()?.lowercase()?.removePrefix("@")?.removePrefix("#") ?: ""
+        val currentUser = _currentUser.value
+        val isCallerAdmin = currentUser?.isAdminUser == true
         val targetGender = if (currentUserGender.equals("Erkak", ignoreCase = true)) "Ayol" else "Erkak"
 
         return _candidates.value.filter { candidate ->
@@ -1404,13 +1406,18 @@ class UserRepository(private val context: Context) {
                 }
             }
 
-            val genderMatch = candidate.gender.equals(targetGender, ignoreCase = true)
             val ageMatch = candidate.age in minAge..maxAge
             val regionMatch = region.isNullOrBlank() || region == "Barchasi" || candidate.viloyat.equals(region, ignoreCase = true)
             val districtMatch = district.isNullOrBlank() || district == "Barchasi" || candidate.tuman.equals(district, ignoreCase = true)
             val mahallaMatch = mahalla.isNullOrBlank() || candidate.mahalla.contains(mahalla, ignoreCase = true)
 
-            genderMatch && ageMatch && regionMatch && districtMatch && mahallaMatch
+            if (isCallerAdmin) {
+                // Admin can see all users without gender restrictions
+                ageMatch && regionMatch && districtMatch && mahallaMatch
+            } else {
+                val genderMatch = candidate.gender.equals(targetGender, ignoreCase = true)
+                genderMatch && ageMatch && regionMatch && districtMatch && mahallaMatch
+            }
         }
     }
 
