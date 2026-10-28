@@ -1597,7 +1597,7 @@
             <div class="db-card">
                 <div class="db-card-header">
                     <h3><span>⚡</span> REST API Test Paneli</h3>
-                    <span style="font-size: 11px; color: var(--text-muted);">Express.js Backend: <code>http://localhost:3000</code></span>
+                    <span style="font-size: 11px; color: var(--text-muted);">Express.js Backend: <a href="https://visol-uz.onrender.com" target="_blank" style="color: #38bdf8; text-decoration: none;">https://visol-uz.onrender.com</a></span>
                 </div>
                 <div class="api-tester-grid">
                     <!-- GET Endpoint -->
@@ -2136,11 +2136,15 @@
         }
 
         // 2. Real-Time Socket.io Connection
+        const BACKEND_URL = 'https://visol-uz.onrender.com';
         let chatSocket = null;
         function initChatSocket() {
             try {
                 if (typeof io !== 'undefined') {
-                    chatSocket = io();
+                    chatSocket = io(BACKEND_URL, {
+                        transports: ['websocket', 'polling'],
+                        query: { userId: currentUserId }
+                    });
                     chatSocket.on('connect', () => {
                         console.log('✅ Connected to Visol Socket.io Real-Time Hub');
                         chatSocket.emit('register_user', currentUserId);
@@ -2485,7 +2489,7 @@
 
                     // REST API ga saqlash
                     try {
-                        fetch('/api/messages/send', {
+                        fetch(`${BACKEND_URL}/api/messages/send`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -2599,7 +2603,7 @@
 
             // 3. REST API orqali backendga saqlash (Fallback / Persistent)
             try {
-                fetch('/api/messages/send', {
+                fetch(`${BACKEND_URL}/api/messages/send`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2687,7 +2691,7 @@
             const outputEl = document.getElementById('apiGetOutput');
             outputEl.innerText = '// So\'rov yuborilmoqda: GET /api/messages/' + currentUserId + '/' + currentPartnerId + ' ...';
             try {
-                const resp = await fetch(`/api/messages/${currentUserId}/${currentPartnerId}`);
+                const resp = await fetch(`${BACKEND_URL}/api/messages/${currentUserId}/${currentPartnerId}`);
                 if (resp.ok) {
                     const data = await resp.json();
                     outputEl.innerText = JSON.stringify(data, null, 2);
@@ -2730,7 +2734,7 @@
             };
 
             try {
-                const resp = await fetch('/api/messages/send', {
+                const resp = await fetch(`${BACKEND_URL}/api/messages/send`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
